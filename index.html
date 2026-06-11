@@ -376,12 +376,20 @@
 			applyTheme(e.target.value);
 		});
 
-		// AUDIO STREAMS & DATA ENGINE
-		// Updated playlist items to more stable direct audio source feeds
+		// FIX: Replaced volatile endpoints with highly stable broadcast channels
 		const internetPlaylist = [
-			{ name: "EVEMUSIC: LOFI CHILL", url: "https://stream.hunter.fm/lofi_high" },
-			{ name: "EVEMUSIC: SYNTHWAVE", url: "https://stream.syntheticfm.com/stream" }, 
-			{ name: "EVEMUSIC: INTERNET RADIO", url: "https://icecast.walmradio.com:8443/classic" }
+			{ 
+				name: "EVEMUSIC: INTERNET RADIO", 
+				url: "https://icecast.walmradio.com:8443/classic" 
+			},
+			{ 
+				name: "EVEMUSIC: SOMAFM INDIE", 
+				url: "https://ice1.somafm.com/indiepop-128-mp3" 
+			},
+			{ 
+				name: "EVEMUSIC: DEF CON RADIO", 
+				url: "https://ice1.somafm.com/defcon-128-mp3" 
+			}
 		];
 		let currentTrackIndex = 0;
 
@@ -400,7 +408,6 @@
 		const btnNetLoad = document.getElementById('btn-net-load');
 		const volumeSlider = document.getElementById('volume-slider');
 
-		// Set default initial volume state
 		audio.volume = volumeSlider.value;
 
 		loadInternetTrack(currentTrackIndex);
@@ -451,12 +458,19 @@
 						spinnerMesh.classList.add('spinning');
 					})
 					.catch(err => {
-						console.error("Playback error: ", err);
-						statusText.textContent = "ERR: BLOCKED/EMPTY";
+						console.error("Playback failed details:", err);
+						statusText.textContent = "ERR: LOAD FAIL";
 						spinnerMesh.classList.remove('spinning');
 					});
 			}
 		}
+
+		// Comprehensive explicit state catching for pipeline disruptions
+		audio.addEventListener('error', (e) => {
+			console.error("Audio Pipeline Error Context:", audio.error);
+			statusText.textContent = "ERR: LINK BROKEN";
+			spinnerMesh.classList.remove('spinning');
+		});
 
 		btnPlay.addEventListener('click', playAudio);
 		btnPause.addEventListener('click', () => {
