@@ -298,7 +298,8 @@
 	</div>
 
 	<input type="file" id="file-input" accept="audio/*">
-	<audio id="audio-engine" crossorigin="anonymous"></audio>
+    
+	<audio id="audio-engine"></audio>
 
 	<script>
 		// DRAGGING SYSTEM
@@ -307,7 +308,6 @@
 		let currentX, currentY, initialX, initialY;
 		let xOffset = 0, yOffset = 0;
 
-		// Load saved coordinates position if they exist
 		if(localStorage.getItem('evemusic_posX')) {
 			xOffset = parseFloat(localStorage.getItem('evemusic_posX'));
 			yOffset = parseFloat(localStorage.getItem('evemusic_posY'));
@@ -334,7 +334,6 @@
 			initialX = currentX; 
 			initialY = currentY; 
 			active = false; 
-			// Save current position vector coordinates persistently
 			localStorage.setItem('evemusic_posX', xOffset);
 			localStorage.setItem('evemusic_posY', yOffset);
 		}
@@ -366,12 +365,10 @@
 			document.documentElement.style.setProperty('--theme-glow', selected.glow);
 			document.documentElement.style.setProperty('--theme-grid', selected.grid);
 			
-			// Persist choice to local memory storage
 			localStorage.setItem('evemusic_saved_theme', themeKey);
 			themeMenu.value = themeKey;
 		}
 
-		// Initialize saved theme on start
 		const cachedTheme = localStorage.getItem('evemusic_saved_theme') || 'eveos';
 		applyTheme(cachedTheme);
 
@@ -380,10 +377,11 @@
 		});
 
 		// AUDIO STREAMS & DATA ENGINE
+		// Updated playlist items to more stable direct audio source feeds
 		const internetPlaylist = [
 			{ name: "EVEMUSIC: LOFI CHILL", url: "https://stream.hunter.fm/lofi_high" },
-			{ name: "EVEMUSIC: SYNTHWAVE CHILL", url: "https://raggapi.com/synthwave.mp3" }, 
-			{ name: "EVEMUSIC: RETRO GAMES", url: "https://stream.retro-radio.com/live.mp3" }
+			{ name: "EVEMUSIC: SYNTHWAVE", url: "https://stream.syntheticfm.com/stream" }, 
+			{ name: "EVEMUSIC: INTERNET RADIO", url: "https://icecast.walmradio.com:8443/classic" }
 		];
 		let currentTrackIndex = 0;
 
@@ -402,12 +400,16 @@
 		const btnNetLoad = document.getElementById('btn-net-load');
 		const volumeSlider = document.getElementById('volume-slider');
 
+		// Set default initial volume state
+		audio.volume = volumeSlider.value;
+
 		loadInternetTrack(currentTrackIndex);
 
 		function loadInternetTrack(index) {
 			const track = internetPlaylist[index];
 			netUrlInput.value = track.url;
 			trackTitle.textContent = track.name;
+			audio.src = track.url;
 		}
 
 		btnNetLoad.addEventListener('click', () => {
@@ -422,14 +424,12 @@
 		document.getElementById('btn-next').addEventListener('click', () => {
 			currentTrackIndex = (currentTrackIndex + 1) % internetPlaylist.length;
 			loadInternetTrack(currentTrackIndex);
-			audio.src = internetPlaylist[currentTrackIndex].url;
 			playAudio();
 		});
 
 		document.getElementById('btn-prev').addEventListener('click', () => {
 			currentTrackIndex = (currentTrackIndex - 1 + internetPlaylist.length) % internetPlaylist.length;
 			loadInternetTrack(currentTrackIndex);
-			audio.src = internetPlaylist[currentTrackIndex].url;
 			playAudio();
 		});
 
@@ -451,7 +451,8 @@
 						spinnerMesh.classList.add('spinning');
 					})
 					.catch(err => {
-						statusText.textContent = "ERR: CORS/BLOCKED";
+						console.error("Playback error: ", err);
+						statusText.textContent = "ERR: BLOCKED/EMPTY";
 						spinnerMesh.classList.remove('spinning');
 					});
 			}
