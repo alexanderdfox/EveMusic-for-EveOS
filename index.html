@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>EveMusic Desktop Player</title>
+	<title>EveMusic Desktop Player Matrix</title>
 	<style>
 		:root {
 			--bg-color: #0b0c10;
@@ -29,23 +29,47 @@
 			transition: background 0.3s ease;
 		}
 
+		/* Master Interface Controller */
+		.master-dock {
+			position: fixed;
+			top: 15px;
+			left: 15px;
+			background: rgba(31, 40, 51, 0.85);
+			border: 2px solid var(--accent-cyan);
+			box-shadow: 0 0 15px var(--theme-glow, rgba(102, 252, 241, 0.3));
+			padding: 10px;
+			z-index: 9999;
+			display: flex;
+			gap: 10px;
+			align-items: center;
+			border-radius: 4px;
+		}
+
+		.master-title {
+			font-size: 11px;
+			font-weight: bold;
+			color: #fff;
+			letter-spacing: 1px;
+		}
+
 		/* Draggable Window Container */
 		.winamp-window {
 			position: absolute;
-			top: 50%;
-			left: 50%;
-			transform: translate(-50%, -50%);
 			width: 550px;
 			height: 550px;
 			cursor: move;
 			z-index: 100;
 		}
 
+		.winamp-window:active {
+			z-index: 1000; /* Pull targeted window to the front during click interaction */
+		}
+
 		.spinner-player {
 			position: relative;
 			width: 100%;
 			height: 100%;
-			filter: drop-shadow(0 0 25px var(--theme-glow, rgba(102, 252, 241, 0.3)));
+			filter: drop-shadow(0 0 25px var(--theme-glow, rgba(102, 252, 241, 0.2)));
 		}
 
 		/* SVG Shape Wrapper */
@@ -215,10 +239,9 @@
 			cursor: pointer;
 		}
 
-		#file-input { display: none; }
+		.hidden-file-input { display: none; }
 		.load-btn { margin-top: 4px; font-size: 8px; padding: 2px 4px; }
 
-		/* Theme Config Selector Dropdown */
 		.theme-selector {
 			background: #000;
 			border: 1px solid var(--accent-dim);
@@ -232,122 +255,47 @@
 			margin-top: 3px;
 			cursor: pointer;
 		}
+
+		.close-btn {
+			position: absolute;
+			top: 75px;
+			right: 145px;
+			background: #000;
+			color: #ff3b30;
+			border: 1px solid #ff3b30;
+			border-radius: 50%;
+			width: 14px;
+			height: 14px;
+			font-size: 8px;
+			line-height: 10px;
+			text-align: center;
+			cursor: pointer;
+			z-index: 200;
+			font-weight: bold;
+		}
+		.close-btn:hover {
+			background: #ff3b30;
+			color: #fff;
+			box-shadow: 0 0 5px #ff3b30;
+		}
 	</style>
 </head>
 <body>
 
-	<div class="winamp-window" id="draggable-player">
-		<div class="spinner-player">
-			
-			<svg class="spinner-hardware" id="spinner-mesh" viewBox="0 0 550 550">
-				<path class="spinner-shell" d="
-					M 275,45 
-					A 65,65 0 0,1 330,110
-					Q 350,210 435,260
-					A 65,65 0 0,1 418,358
-					Q 315,340 275,410
-					A 65,65 0 0,1 132,358
-					Q 195,340 115,260
-					A 65,65 0 0,1 220,110
-					Q 200,210 275,45 Z
-				"/>
-				<circle class="bearing-weight" cx="275" cy="110" r="40" />
-				<circle class="bearing-weight" cx="418" cy="358" r="40" />
-				<circle class="bearing-weight" cx="132" cy="358" r="40" />
-			</svg>
-
-			<div class="center-bearing" onmousedown="event.stopPropagation()">
-				<div class="title-display" id="track-title">EVEMUSIC PLAYER</div>
-				<div class="time-display" id="time-count">00:00</div>
-				<div class="status-display" id="status-text">Stopped</div>
-				<button class="btn load-btn" onclick="document.getElementById('file-input').click()">LOAD LOCAL</button>
-			</div>
-
-			<div class="prong-ui prong-top" onmousedown="event.stopPropagation()">
-				<span style="font-size: 8px; color: var(--accent-dim);">EVEMUSIC STREAMS</span>
-				<input type="text" class="net-input" id="net-url-input" placeholder="Paste Audio URL...">
-				<div style="display: flex; margin-top: 2px;">
-					<button class="btn" id="btn-prev" title="Previous Station">&lt;&lt;</button>
-					<button class="btn" id="btn-net-load" style="font-weight: bold;">LOAD</button>
-					<button class="btn" id="btn-next" title="Next Station">&gt;&gt;</button>
-				</div>
-			</div>
-
-			<div class="prong-ui prong-bottom-right" onmousedown="event.stopPropagation()">
-				<button class="btn" id="btn-play" style="width: 55px;">PLAY</button>
-				<div style="display: flex;">
-					<button class="btn" id="btn-pause">PAUSE</button>
-					<button class="btn" id="btn-stop">STOP</button>
-				</div>
-			</div>
-
-			<div class="prong-ui prong-bottom-left" onmousedown="event.stopPropagation()">
-				<div class="slider-container">
-					<label>VOLUME</label>
-					<input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.7">
-				</div>
-				<select class="theme-selector" id="theme-menu">
-					<option value="eveos">EVEOS CYAN</option>
-					<option value="matrix">TERMINAL GREEN</option>
-					<option value="sunset">CYBER AMBER</option>
-					<option value="toxin">RAD TOXIN</option>
-				</select>
-			</div>
-
-		</div>
+	<div class="master-dock">
+		<span class="master-title" id="player-count-display">PLAYERS ACTIVE: 0/10</span>
+		<button class="btn" id="spawn-player-btn" style="padding: 6px 10px; font-weight: bold;">+ SPAWN NEW PLAYER</button>
+		<select class="theme-selector" id="theme-menu" style="padding: 5px; width: 110px;">
+			<option value="eveos">EVEOS CYAN</option>
+			<option value="matrix">TERMINAL GREEN</option>
+			<option value="sunset">CYBER AMBER</option>
+			<option value="toxin">RAD TOXIN</option>
+		</select>
 	</div>
 
-	<input type="file" id="file-input" accept="audio/*">
-    
-	<audio id="audio-engine"></audio>
+	<div id="player-matrix-container"></div>
 
 	<script>
-		// DRAGGING SYSTEM
-		const dragItem = document.getElementById("draggable-player");
-		let active = false;
-		let currentX, currentY, initialX, initialY;
-		let xOffset = 0, yOffset = 0;
-
-		if(localStorage.getItem('evemusic_posX')) {
-			xOffset = parseFloat(localStorage.getItem('evemusic_posX'));
-			yOffset = parseFloat(localStorage.getItem('evemusic_posY'));
-			dragItem.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
-		} else {
-			const rect = dragItem.getBoundingClientRect();
-			xOffset = rect.left + rect.width / 2 - window.innerWidth / 2;
-			yOffset = rect.top + rect.height / 2 - window.innerHeight / 2;
-			dragItem.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
-		}
-
-		document.addEventListener("mousedown", dragStart);
-		document.addEventListener("mouseup", dragEnd);
-		document.addEventListener("mousemove", drag);
-
-		function dragStart(e) {
-			if (e.target === dragItem || dragItem.contains(e.target)) {
-				initialX = e.clientX - xOffset;
-				initialY = e.clientY - yOffset;
-				active = true;
-			}
-		}
-		function dragEnd() { 
-			initialX = currentX; 
-			initialY = currentY; 
-			active = false; 
-			localStorage.setItem('evemusic_posX', xOffset);
-			localStorage.setItem('evemusic_posY', yOffset);
-		}
-		function drag(e) {
-			if (active) {
-				e.preventDefault();
-				currentX = e.clientX - initialX;
-				currentY = e.clientY - initialY;
-				xOffset = currentX;
-				yOffset = currentY;
-				dragItem.style.transform = `translate(${currentX}px, ${currentY}px)`;
-			}
-		}
-
 		// PERSISTENT THEME DATA PROFILE REGISTRY
 		const themes = {
 			eveos: { cyan: "#66fcf1", dim: "#45a29e", glow: "rgba(102, 252, 241, 0.4)", grid: "rgba(102, 252, 241, 0.03)" },
@@ -371,127 +319,260 @@
 
 		const cachedTheme = localStorage.getItem('evemusic_saved_theme') || 'eveos';
 		applyTheme(cachedTheme);
+		themeMenu.addEventListener('change', (e) => applyTheme(e.target.value));
 
-		themeMenu.addEventListener('change', (e) => {
-			applyTheme(e.target.value);
-		});
-
-		// FIX: Replaced volatile endpoints with highly stable broadcast channels
+		// Audio Streams Blueprint
 		const internetPlaylist = [
-			{ 
-				name: "EVEMUSIC: INTERNET RADIO", 
-				url: "https://icecast.walmradio.com:8443/classic" 
-			},
-			{ 
-				name: "EVEMUSIC: SOMAFM INDIE", 
-				url: "https://ice1.somafm.com/indiepop-128-mp3" 
-			},
-			{ 
-				name: "EVEMUSIC: DEF CON RADIO", 
-				url: "https://ice1.somafm.com/defcon-128-mp3" 
-			}
+			{ name: "EVEMUSIC: INTERNET RADIO", url: "https://icecast.walmradio.com:8443/classic" },
+			{ name: "EVEMUSIC: SOMAFM INDIE", url: "https://ice1.somafm.com/indiepop-128-mp3" },
+			{ name: "EVEMUSIC: DEF CON RADIO", url: "https://ice1.somafm.com/defcon-128-mp3" }
 		];
-		let currentTrackIndex = 0;
 
-		const audio = document.getElementById('audio-engine');
-		const spinnerMesh = document.getElementById('spinner-mesh');
-		const fileInput = document.getElementById('file-input');
-		const netUrlInput = document.getElementById('net-url-input');
-		
-		const trackTitle = document.getElementById('track-title');
-		const timeCount = document.getElementById('time-count');
-		const statusText = document.getElementById('status-text');
+		const maxPlayers = 10;
+		let totalActivePlayers = 0;
+		const canvasContainer = document.getElementById('player-matrix-container');
+		const countDisplay = document.getElementById('player-count-display');
 
-		const btnPlay = document.getElementById('btn-play');
-		const btnPause = document.getElementById('btn-pause');
-		const btnStop = document.getElementById('btn-stop');
-		const btnNetLoad = document.getElementById('btn-net-load');
-		const volumeSlider = document.getElementById('volume-slider');
+		// Handle Global Drag Event Management
+		let dragTarget = null;
+		let initialX, initialY, startLeft, startTop;
+		let highestZIndex = 100;
 
-		audio.volume = volumeSlider.value;
+		document.addEventListener("mousedown", (e) => {
+			const targetWindow = e.target.closest('.winamp-window');
+			if (targetWindow) {
+				// Pull clicked window above everything else
+				highestZIndex++;
+				targetWindow.style.zIndex = highestZIndex;
 
-		loadInternetTrack(currentTrackIndex);
+				// Verify clicking window background or elements that allow dragging
+				if (e.target.classList.contains('spinner-player') || e.target.closest('.spinner-hardware')) {
+					dragTarget = targetWindow;
+					initialX = e.clientX;
+					initialY = e.clientY;
+					startLeft = parseFloat(dragTarget.style.left) || 0;
+					startTop = parseFloat(dragTarget.style.top) || 0;
+					e.preventDefault();
+				}
+			}
+		});
 
-		function loadInternetTrack(index) {
-			const track = internetPlaylist[index];
-			netUrlInput.value = track.url;
-			trackTitle.textContent = track.name;
-			audio.src = track.url;
+		document.addEventListener("mousemove", (e) => {
+			if (dragTarget) {
+				const deltaX = e.clientX - initialX;
+				const deltaY = e.clientY - initialY;
+				dragTarget.style.left = `${startLeft + deltaX}px`;
+				dragTarget.style.top = `${startTop + deltaY}px`;
+			}
+		});
+
+		document.addEventListener("mouseup", () => {
+			dragTarget = null;
+		});
+
+		// Dynamic Instantiation Factory
+		function createNewPlayerNode() {
+			if (totalActivePlayers >= maxPlayers) {
+				alert("Maximum limit of 10 concurrent player windows achieved.");
+				return;
+			}
+
+			totalActivePlayers++;
+			countDisplay.textContent = `PLAYERS ACTIVE: ${totalActivePlayers}/${maxPlayers}`;
+
+			// Stagger starting offsets on spawn so they do not overlap perfectly
+			const offsetSeed = (totalActivePlayers - 1) * 35;
+			const initialLeft = (window.innerWidth / 2) - 275 + offsetSeed;
+			const initialTop = (window.innerHeight / 2) - 275 + offsetSeed;
+
+			// Generate internal DOM footprint
+			const playerUid = `player-${Date.now()}`;
+			const windowWrapper = document.createElement('div');
+			windowWrapper.className = 'winamp-window';
+			windowWrapper.id = playerUid;
+			windowWrapper.style.left = `${initialLeft}px`;
+			windowWrapper.style.top = `${initialTop}px`;
+			windowWrapper.style.zIndex = ++highestZIndex;
+
+			windowWrapper.innerHTML = `
+				<div class="spinner-player">
+					<button class="close-btn" title="Terminate Instance">X</button>
+					<svg class="spinner-hardware" viewBox="0 0 550 550">
+						<path class="spinner-shell" d="M 275,45 A 65,65 0 0,1 330,110 Q 350,210 435,260 A 65,65 0 0,1 418,358 Q 315,340 275,410 A 65,65 0 0,1 132,358 Q 195,340 115,260 A 65,65 0 0,1 220,110 Q 200,210 275,45 Z"/>
+						<circle class="bearing-weight" cx="275" cy="110" r="40" />
+						<circle class="bearing-weight" cx="418" cy="358" r="40" />
+						<circle class="bearing-weight" cx="132" cy="358" r="40" />
+					</svg>
+
+					<div class="center-bearing" onmousedown="event.stopPropagation()">
+						<div class="title-display class-track-title">LOADING...</div>
+						<div class="time-display class-time-count">00:00</div>
+						<div class="status-display class-status-text">Stopped</div>
+						<button class="btn load-btn class-load-local-trigger">LOAD LOCAL</button>
+					</div>
+
+					<div class="prong-ui prong-top" onmousedown="event.stopPropagation()">
+						<span style="font-size: 8px; color: var(--accent-dim);">STREAM CONSOLE</span>
+						<input type="text" class="net-input class-net-input" placeholder="Paste Audio URL...">
+						<div style="display: flex; margin-top: 2px;">
+							<button class="btn class-btn-prev" title="Prev Stream">&lt;&lt;</button>
+							<button class="btn class-btn-net-load" style="font-weight: bold;">LOAD</button>
+							<button class="btn class-btn-next" title="Next Stream">&gt;&gt;</button>
+						</div>
+					</div>
+
+					<div class="prong-ui prong-bottom-right" onmousedown="event.stopPropagation()">
+						<button class="btn class-btn-play" style="width: 55px;">PLAY</button>
+						<div style="display: flex;">
+							<button class="btn class-btn-pause">PAUSE</button>
+							<button class="btn class-btn-stop">STOP</button>
+						</div>
+					</div>
+
+					<div class="prong-ui prong-bottom-left" onmousedown="event.stopPropagation()">
+						<div class="slider-container">
+							<label>VOLUME</label>
+							<input type="range" class="class-volume-slider" min="0" max="1" step="0.05" value="0.7">
+						</div>
+						<div style="font-size: 8px; color: var(--accent-dim); margin-top: 5px;">ID: ${totalActivePlayers}</div>
+					</div>
+				</div>
+				<input type="file" class="hidden-file-input" accept="audio/*">
+				<audio class="class-audio-engine"></audio>
+			`;
+
+			canvasContainer.appendChild(windowWrapper);
+			bindPlayerLogics(windowWrapper);
 		}
 
-		btnNetLoad.addEventListener('click', () => {
-			const targetUrl = netUrlInput.value.trim();
-			if(targetUrl) {
-				audio.src = targetUrl;
-				trackTitle.textContent = "CUSTOM NETWORK STREAM";
-				playAudio();
+		// Encapsulate and map separate scope components inside each individual spawn
+		function bindPlayerLogics(domNode) {
+			const audio = domNode.querySelector('.class-audio-engine');
+			const spinnerMesh = domNode.querySelector('.spinner-hardware');
+			const fileInput = domNode.querySelector('.hidden-file-input');
+			const netUrlInput = domNode.querySelector('.class-net-input');
+			
+			const trackTitle = domNode.querySelector('.class-track-title');
+			const timeCount = domNode.querySelector('.class-time-count');
+			const statusText = domNode.querySelector('.class-status-text');
+
+			const btnPlay = domNode.querySelector('.class-btn-play');
+			const btnPause = domNode.querySelector('.class-btn-pause');
+			const btnStop = domNode.querySelector('.class-btn-stop');
+			const btnNetLoad = domNode.querySelector('.class-btn-net-load');
+			const btnNext = domNode.querySelector('.class-btn-next');
+			const btnPrev = domNode.querySelector('.class-btn-prev');
+			const localTrigger = domNode.querySelector('.class-load-local-trigger');
+			const volumeSlider = domNode.querySelector('.class-volume-slider');
+			const closeBtn = domNode.querySelector('.close-btn');
+
+			let trackIndex = 0;
+			audio.volume = volumeSlider.value;
+
+			function loadPlaylistTrack(idx) {
+				const track = internetPlaylist[idx];
+				netUrlInput.value = track.url;
+				trackTitle.textContent = track.name;
+				audio.src = track.url;
 			}
-		});
 
-		document.getElementById('btn-next').addEventListener('click', () => {
-			currentTrackIndex = (currentTrackIndex + 1) % internetPlaylist.length;
-			loadInternetTrack(currentTrackIndex);
-			playAudio();
-		});
-
-		document.getElementById('btn-prev').addEventListener('click', () => {
-			currentTrackIndex = (currentTrackIndex - 1 + internetPlaylist.length) % internetPlaylist.length;
-			loadInternetTrack(currentTrackIndex);
-			playAudio();
-		});
-
-		fileInput.addEventListener('change', (e) => {
-			const file = e.target.files[0];
-			if (file) {
-				trackTitle.textContent = file.name.toUpperCase();
-				audio.src = URL.createObjectURL(file);
-				playAudio();
+			function executePlay() {
+				if (audio.src) {
+					statusText.textContent = "Connecting...";
+					audio.play()
+						.then(() => {
+							statusText.textContent = "Playing";
+							spinnerMesh.classList.add('spinning');
+						})
+						.catch(err => {
+							statusText.textContent = "ERR: LOAD FAIL";
+							spinnerMesh.classList.remove('spinning');
+						});
+				}
 			}
-		});
 
-		function playAudio() {
-			if(audio.src) {
-				statusText.textContent = "Connecting...";
-				audio.play()
-					.then(() => {
-						statusText.textContent = "Playing";
-						spinnerMesh.classList.add('spinning');
-					})
-					.catch(err => {
-						console.error("Playback failed details:", err);
-						statusText.textContent = "ERR: LOAD FAIL";
-						spinnerMesh.classList.remove('spinning');
-					});
-			}
+			// Assign track baseline initialization
+			loadPlaylistTrack(trackIndex);
+
+			// UI Event Map bindings
+			localTrigger.addEventListener('click', () => fileInput.click());
+			
+			btnNetLoad.addEventListener('click', () => {
+				const target = netUrlInput.value.trim();
+				if(target) {
+					audio.src = target;
+					trackTitle.textContent = "CUSTOM NETWORK STREAM";
+					executePlay();
+				}
+			});
+
+			btnNext.addEventListener('click', () => {
+				trackIndex = (trackIndex + 1) % internetPlaylist.length;
+				loadPlaylistTrack(trackIndex);
+				executePlay();
+			});
+
+			btnPrev.addEventListener('click', () => {
+				trackIndex = (trackIndex - 1 + internetPlaylist.length) % internetPlaylist.length;
+				loadPlaylistTrack(trackIndex);
+				executePlay();
+			});
+
+			fileInput.addEventListener('change', (e) => {
+				const file = e.target.files[0];
+				if (file) {
+					trackTitle.textContent = file.name.toUpperCase();
+					audio.src = URL.createObjectURL(file);
+					executePlay();
+				}
+			});
+
+			btnPlay.addEventListener('click', executePlay);
+
+			btnPause.addEventListener('click', () => {
+				audio.pause();
+				statusText.textContent = "Paused";
+				spinnerMesh.classList.remove('spinning');
+			});
+
+			btnStop.addEventListener('click', () => {
+				audio.pause();
+				audio.currentTime = 0;
+				statusText.textContent = "Stopped";
+				spinnerMesh.classList.remove('spinning');
+			});
+
+			volumeSlider.addEventListener('input', (e) => { 
+				audio.volume = e.target.value; 
+			});
+
+			audio.addEventListener('timeupdate', () => {
+				let mins = Math.floor(audio.currentTime / 60);
+				let secs = Math.floor(audio.currentTime % 60);
+				timeCount.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+			});
+
+			audio.addEventListener('error', () => {
+				statusText.textContent = "ERR: LINK BROKEN";
+				spinnerMesh.classList.remove('spinning');
+			});
+
+			// Destructor configuration to terminate audio context safely upon exit
+			closeBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				audio.pause();
+				audio.src = "";
+				audio.load(); // Forces immediate memory allocation dumping
+				domNode.remove();
+				
+				totalActivePlayers--;
+				countDisplay.textContent = `PLAYERS ACTIVE: ${totalActivePlayers}/${maxPlayers}`;
+			});
 		}
 
-		// Comprehensive explicit state catching for pipeline disruptions
-		audio.addEventListener('error', (e) => {
-			console.error("Audio Pipeline Error Context:", audio.error);
-			statusText.textContent = "ERR: LINK BROKEN";
-			spinnerMesh.classList.remove('spinning');
-		});
-
-		btnPlay.addEventListener('click', playAudio);
-		btnPause.addEventListener('click', () => {
-			audio.pause();
-			statusText.textContent = "Paused";
-			spinnerMesh.classList.remove('spinning');
-		});
-		btnStop.addEventListener('click', () => {
-			audio.pause();
-			audio.currentTime = 0;
-			statusText.textContent = "Stopped";
-			spinnerMesh.classList.remove('spinning');
-		});
-
-		volumeSlider.addEventListener('input', (e) => { audio.volume = e.target.value; });
-
-		audio.addEventListener('timeupdate', () => {
-			let mins = Math.floor(audio.currentTime / 60);
-			let secs = Math.floor(audio.currentTime % 60);
-			timeCount.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-		});
+		// Initial application layout launch item
+		document.getElementById('spawn-player-btn').addEventListener('click', createNewPlayerNode);
+		createNewPlayerNode(); // Always spawn one automatically on interface boot load
 	</script>
 </body>
 </html>
